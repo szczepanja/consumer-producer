@@ -1,29 +1,34 @@
 import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 
+import java.time.Duration
 import java.util.Properties
 
 object Consumer extends App {
-  val props = new Properties()
+  val producerProps = new Properties()
+  producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+  producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+  producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
 
-  props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
-  props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
-  props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-  props.put(ConsumerConfig.GROUP_ID_CONFIG, "AnjaID100000000")
+  val consumerProps = new Properties()
+  consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
+  consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
+  consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+  consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "consumer")
 
-  val consumer = new KafkaConsumer[String, String](props)
+  val producer = new KafkaProducer[String, String](producerProps)
+
+  val consumer = new KafkaConsumer[String, String](consumerProps)
 
   import scala.jdk.CollectionConverters._
 
-  consumer.subscribe(Seq("input").asJava)
   consumer.subscribe(Seq("output").asJava)
 
   while (true) {
-    val records = consumer.poll(100).asScala
+    val records = consumer.poll(Duration.ofMillis(100)).asScala
+    records.foreach { record =>
+      producer.send(new ProducerRecord[String, String](record.value, record.value))
 
-    records.foreach { r =>
-      System.out.printf("offset = %d, key = %s, value = %s%n", r.offset, r.key, r.value.toUpperCase)
     }
   }
-
-  consumer.close()
 }
