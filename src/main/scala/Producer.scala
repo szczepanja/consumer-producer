@@ -12,10 +12,11 @@ object Producer extends App {
 
   val producer = new KafkaProducer[String, String](props)
 
-  val topic = "adform-topic"
+  val message1 = "Hello from this topic1!"
+  val message2 = "Hello from this topic2!"
 
-  val message = "Hello from this TOPIC!"
+  producer.send(new ProducerRecord[String, String]("input", message1))
+  producer.send(new ProducerRecord[String, String]("output", message2))
 
-  producer.send(new ProducerRecord[String, String](topic, message))
   producer.close()
 }
